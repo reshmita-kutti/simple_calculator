@@ -1,0 +1,129 @@
+#Just for fun i added cartoon characters from sanrio to this 
+import tkinter as tk
+from tkinter import messagebox
+from PIL import Image, ImageTk # Import Image and ImageTk from PIL
+
+class Calculator:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Sanrio Calculator")
+        # Significantly increased height to ensure all buttons are visible
+        self.root.geometry("340x650") # Increased height from 550 to 650
+        self.root.resizable(False, False)
+        self.expression = ""
+        self.input_text = tk.StringVar()
+
+        self.add_sanrio_banner()
+        self.create_widgets()
+
+    def add_sanrio_banner(self):
+        # Load and display Sanrio image
+        try:
+            image = Image.open("sanrio.jpg")
+            # Image size fixed to 340px width to match window, height 100px
+            image = image.resize((340, 100), Image.Resampling.LANCZOS)
+            self.sanrio_img = ImageTk.PhotoImage(image)
+
+            img_label = tk.Label(self.root, image=self.sanrio_img)
+            # Ensure it expands to fill its cell at the top
+            img_label.grid(row=0, column=0, columnspan=4, sticky='nsew')
+        except FileNotFoundError:
+            messagebox.showerror("Error", "sanrio.jpg not found. Please ensure the image is in the same directory.")
+            # Placeholder for the banner if image is not found
+            placeholder_label = tk.Label(self.root, text="Sanrio Banner Placeholder",
+                                         font=('Arial', 12), bg='pink', fg='white',
+                                         height=5) # height in text lines for placeholder
+            placeholder_label.grid(row=0, column=0, columnspan=4, sticky='nsew')
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred loading the image: {e}")
+            placeholder_label = tk.Label(self.root, text="Sanrio Banner Placeholder",
+                                         font=('Arial', 12), bg='pink', fg='white',
+                                         height=5) # height in text lines for placeholder
+            placeholder_label.grid(row=0, column=0, columnspan=4, sticky='nsew')
+
+    def create_widgets(self):
+        # Entry Display for showing input and results
+        entry = tk.Entry(self.root, textvariable=self.input_text, font=('Arial', 28, 'bold'), # Increased font size for readability
+                         bd=10, relief='ridge', justify='right')
+        # Increased ipady for more vertical space inside the entry field
+        entry.grid(row=1, column=0, columnspan=4, padx=10, pady=10, ipady=20, sticky='nsew')
+
+        # Layout for number and operator buttons
+        buttons_layout = [
+            ['7', '8', '9', '/'],
+            ['4', '5', '6', '*'],
+            ['1', '2', '3', '-'],
+            ['0', '.', '=', '+']
+        ]
+
+        # Buttons start at row 2 (after banner and entry)
+        starting_row_for_buttons = 2
+
+        for i, row in enumerate(buttons_layout):
+            for j, btn_text in enumerate(row):
+                button = tk.Button(self.root, text=btn_text, font=('Arial', 20), # Slightly larger font for buttons
+                                   padx=15, pady=15, # Internal padding for button content
+                                   command=lambda ch=btn_text: self.on_button_click(ch))
+                # External padding for the grid cell, and sticky for expansion
+                button.grid(row=i + starting_row_for_buttons, column=j, padx=5, pady=5, sticky='nsew')
+
+        # Clear Button (C)
+        clear_btn = tk.Button(self.root, text="C", font=('Arial', 18, 'bold'), # Adjusted font size
+                              bg='red', fg='white', command=self.clear)
+        # Placed at the row immediately following the last row of number/operator buttons
+        clear_btn.grid(row=starting_row_for_buttons + len(buttons_layout), column=0, columnspan=4,
+                       padx=10, pady=10, sticky='nsew') # Ensure it expands across all columns
+
+        # Configure row and column weights for proportional expansion
+        # This is CRUCIAL for making buttons resize and appear properly.
+        # Row 0: Banner
+        # Row 1: Entry Display
+        # Rows 2, 3, 4, 5: Main Calculator Buttons (4 rows)
+        # Row 6: Clear Button
+        # Total rows to configure are 0 through 6 (which is 7 rows)
+        for i in range(starting_row_for_buttons + len(buttons_layout) + 1): # Covers 0 to 6
+            self.root.rowconfigure(i, weight=1)
+        # All 4 columns should expand evenly
+        for j in range(4):
+            self.root.columnconfigure(j, weight=1)
+
+    def on_button_click(self, char):
+        if char == '=':
+            self.calculate()
+        else:
+            # Handle cases for current expression state to prevent invalid input
+            if self.expression == "0" and char != '.':
+                self.expression = str(char)
+            elif char == '.' and '.' in self.expression.split()[-1] if self.expression.split() else False:
+                # Prevent multiple decimal points in the current number
+                pass
+            elif self.expression == "" and char == '.':
+                self.expression = "0." # If '.' is first, start with "0."
+            else:
+                self.expression += str(char)
+            self.input_text.set(self.expression)
+
+    def calculate(self):
+        try:
+            # eval() is used for simplicity in this calculator example.
+            # Be cautious with eval() for untrusted user input in production code.
+            result = str(eval(self.expression))
+            self.input_text.set(result)
+            self.expression = result
+        except ZeroDivisionError:
+            messagebox.showerror("Math Error", "Cannot divide by zero!")
+            self.clear()
+        except Exception: # Catch any other general errors from eval (e.g., syntax errors, incomplete expressions)
+            messagebox.showerror("Error", "Invalid Expression")
+            self.clear()
+
+    def clear(self):
+        self.expression = ""
+        self.input_text.set("")
+
+
+# Run the app
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = Calculator(root)
+    root.mainloop()
